@@ -2,11 +2,13 @@
 
 ---
 
-# Cubism Web Samples
+# DotViewer
 
-This is a sample implementation of an application that displays models output by Live2D Cubism Editor.
+DotViewer is a Vite and TypeScript web application for browsing and displaying Live2D Cubism models in the browser.
 
-It is used in conjunction with the Cubism Web Framework and Live2D Cubism Core.
+The viewer can switch between models, play scripted motions and voice audio, drag the model around the canvas, and enter fullscreen mode. It uses the Live2D Cubism Web Framework and Cubism Core for rendering.
+
+Model files are loaded from `Dot/public/data`. Add a model directory containing a `model3.json` file there, then restart the development server so the model index can be regenerated.
 
 
 ## License
@@ -19,24 +21,21 @@ Please check the [license](LICENSE.md) before using this SDK.
 Please check the [notices](NOTICE.md) before using this SDK.
 
 
-## Compatibility with Cubism 5.3 new features and previous Cubism SDK versions
+## Cubism compatibility
 
-This SDK is compatible with Cubism 5.3.  
-For SDK compatibility with new features in Cubism 5.3 Editor, please refer to [here](https://docs.live2d.com/en/cubism-sdk-manual/cubism-5-3-new-functions/).  
-For compatibility with previous versions of Cubism SDK, please refer to [here](https://docs.live2d.com/en/cubism-sdk-manual/compatibility-with-cubism-5-3/).
+This project uses the Cubism Web Framework and is compatible with Cubism 5.3.
+For details about Cubism 5.3 features, see the [Cubism SDK Manual](https://docs.live2d.com/en/cubism-sdk-manual/cubism-5-3-new-functions/).
 
-
-
-## Directory structure
+## Project structure
 
 ```
 .
-├─ .vscode          # Project settings directory for Visual Studio Code
-├─ Core             # Directory containing Live2D Cubism Core
-├─ Framework        # Directory containing source code such as rendering and animation functions
-└─ Samples
-   ├─ Resources     # Directory containing resources such as model files and images
-   └─ TypeScript    # Directory containing TypeScript sample projects
+├─ Core             # Live2D Cubism Core runtime
+├─ Framework        # Cubism Web Framework source code
+└─ Dot
+    ├─ public         # Cubism Core, shaders, and model assets
+    ├─ scripts        # Model index generation scripts
+    └─ src            # Viewer, model, audio, and script logic
 ```
 
 
@@ -48,33 +47,29 @@ This repository does not manage Cubism Core.
 Download the Cubism SDK for Web from [here](https://www.live2d.com/download/cubism-sdk/download-web/) and copy the files in the Core directory.
 
 
-## Development environment construction
+## Development setup
 
-1. Install [Node.js] and [Visual Studio Code]
-1. Open **the top directory of this SDK** in Visual Studio Code and install the recommended extensions
-    * In addition to pop-up notifications, you can check the others by typing `@recommended` from the Extensions tab
+1. Install [Node.js](https://nodejs.org/).
+1. Open a terminal in the `Dot` directory and install dependencies:
 
-### Operation check of sample demo
+    ```sh
+    npm install
+    ```
 
-Enter `>Tasks: Run Task` in the command palette (*View > Command Palette...*) to display the task list.
+1. Start the development server:
 
-1. Select `npm: install - Samples/TypeScript/Demo` from the task list to download the dependent packages
-1. Select `npm: build - Samples/TypeScript/Demo` from the task list to build the sample demo
-1. Select `npm: serve - Samples/TypeScript/Demo` from the task list to start the simple server for operation check
-1. Enter `http://localhost:5000` in the URL field of your browser to access it
-1. Enter `>Tasks: Terminate Task` from the command palette and select `npm: serve` to terminate the simple server
+    ```sh
+    npm run start
+    ```
 
-For other tasks, see [README.md](Samples/TypeScript/README.md) of the sample project.
+1. Open the URL printed by Vite, usually `http://localhost:5173`.
 
-NOTE: Settings for debugging are described in `.vscode/tasks.json`.
+To create a production build, run `npm run build` from the `Dot` directory.
 
 ### Project debugging
 
-Open **the top directory of this SDK** in Visual Studio Code and press *F5* to start debugging with the built-in JavaScript Debugger (for example Chrome or Edge).
+Open the project in Visual Studio Code and use the browser developer tools to debug the running viewer.
 
-You can place breakpoints in Visual Studio Code and debug in the browser.
-
-NOTE: Settings for debugging are described in `.vscode/launch.json`.
 
 
 ## SDK manual
@@ -84,7 +79,7 @@ NOTE: Settings for debugging are described in `.vscode/launch.json`.
 
 ## Changelog
 
-Samples : [CHANGELOG.md](CHANGELOG.md)
+DotViewer : [CHANGELOG.md](CHANGELOG.md)
 
 Framework : [CHANGELOG.md](Framework/CHANGELOG.md)
 
