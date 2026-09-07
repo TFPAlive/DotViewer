@@ -1,0 +1,21 @@
+{
+  "name": "cubism-web-model-viewer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prestart": "node scripts/generate-model-index.mjs",
+    "start": "vite",
+    "prebuild": "node scripts/generate-model-index.mjs",
+    "build": "tsc --noEmit && vite build",
+    "build:prod": "npm run build",
+    "test": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "vite": "^7.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.1",
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live2D Model Viewer</title>
+  </head>
+  <body>
+    <main class="app-shell">
+        <label class="model-picker">
+          <span>Model</span>
+          <select id="model-select" aria-label="Select a model"></select>
+        </label>
+      </header>
+      <section class="viewer-panel" aria-label="Live2D model viewer">
+        <button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-label="Enter fullscreen">Fullscreen</button>
+        <div class="playback-controls" aria-label="Playback controls">
+          <button id="play-toggle" type="button">Play</button>
+          <button id="restart-toggle" type="button">Restart</button>
+          <span id="script-status" role="status">Script ready</span>
+        </div>
+        <canvas id="model-canvas"></canvas>
+        <div id="loading" class="status">Loading model...</div>
+        <div id="error" class="status error" hidden></div>
+      </section>
+    </main>
+    <script src="/Core/live2dcubismcore.js"></script>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
