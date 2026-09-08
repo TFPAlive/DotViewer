@@ -23,6 +23,7 @@ export class ScriptedUserModel extends CubismUserModel {
   private asyncMotions: Array<{
     manager: CubismMotionManager;
     motion: CubismMotion;
+    name: string;
     remaining: number;
     stopped: boolean;
     frozenParameters: Map<number, number>;
@@ -42,13 +43,14 @@ export class ScriptedUserModel extends CubismUserModel {
     this._motionManager.startMotionPriority(motion, true, 1);
   }
 
-  public playAsyncMotion(motion: CubismMotion, duration: number): void {
+  public playAsyncMotion(name: string, motion: CubismMotion, duration: number): void {
     motion.setEffectIds([], []);
     const manager = this.createMotionManager();
     manager.startMotionPriority(motion, true, 1);
     this.asyncMotions.push({
       manager,
       motion,
+      name,
       remaining: duration,
       stopped: false,
       frozenParameters: new Map()
@@ -128,6 +130,16 @@ export class ScriptedUserModel extends CubismUserModel {
   public setLipSyncEnabled(enabled: boolean): void {
     this.lipSyncEnabled = enabled;
     if (!enabled) this.updateLipSync(0);
+  }
+
+  public releaseAsyncMotion(name: string): void {
+    for (let index = this.asyncMotions.length - 1; index >= 0; index -= 1) {
+      const activeMotion = this.asyncMotions[index];
+      if (activeMotion.name !== name) continue;
+      activeMotion.manager.stopAllMotions();
+      activeMotion.manager.release();
+      this.asyncMotions.splice(index, 1);
+    }
   }
 
   public updateLipSync(level: number): void {

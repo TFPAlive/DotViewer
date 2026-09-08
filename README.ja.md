@@ -2,11 +2,25 @@
 
 ---
 
-# Cubism Web Samples
+# DotViewer
 
-Live2D Cubism Editor で出力したモデルを表示するアプリケーションのサンプル実装です。
+DotViewer は、ブラウザ上で Live2D Cubism モデルを表示・再生する Vite / TypeScript アプリケーションです。
 
-Cubism Web Framework および Live2D Cubism Core と組み合わせて使用します。
+モデルの切り替え、スクリプトによるモーションと音声の再生、キャンバス上でのモデル操作、全画面表示に対応しています。描画には Cubism Web Framework と Cubism Core を使用します。
+
+モデルは `Dot/public/data` から読み込まれます。`model3.json` を含むモデルのディレクトリを追加した後、モデル一覧を再生成するため開発サーバーを再起動してください。
+
+### スクリプト再生
+
+スクリプトは `Dot/public/data/<group>/script` から読み込まれます。シーン切り替え、モーション、メッセージ、音声、背景動画、待機時間をスクリプトで制御できます。
+
+* `l2dmotion` は通常のモーションレイヤーでモーションを直ちに再生します。
+* `asyncl2dmotion,...,STOP,<秒数>` は独立したレイヤーでモーションを再生し、指定時間後に更新を停止します。停止時のパラメータ値は保持され、Reset モーションまで他のモーションに重なって適用されます。
+* `message` は表示される文章の長さに応じて待機します。`l2dmessage` は音声を再生でき、既存の音声・読了タイミングを使用します。
+* `（...）` または `(...)` で囲まれた文章は思考として扱われるため、リップシンクには使用しません。
+* Reset モーションは一時的なモーションレイヤーを消去し、現在のシーンモーションに戻します。
+
+ブラウザの開発者コンソールには、実行番号、コマンド名、アニメーション名、タイミング情報を含むスクリプト実行ログが出力されます。
 
 
 ## ライセンス
@@ -29,12 +43,12 @@ Cubism 5.3 Editorに搭載された新機能のSDK対応については [こち�
 
 ```
 .
-├─ .vscode          # Visual Studio Code 用プロジェクト設定ディレクトリ
 ├─ Core             # Live2D Cubism Core が含まれるディレクトリ
 ├─ Framework        # レンダリングやアニメーション機能などのソースコードが含まれるディレクトリ
-└─ Samples
-   ├─ Resources     # モデルのファイルや画像などのリソースが含まれるディレクトリ
-   └─ TypeScript    # TypeScript のサンプルプロジェクトが含まれるディレクトリ
+└─ Dot
+    ├─ public         # Core、シェーダー、モデルなどの公開リソース
+    ├─ scripts        # モデル一覧生成スクリプト
+    └─ src            # ビューアー、モデル、音声、スクリプトの処理
 ```
 
 
@@ -49,31 +63,26 @@ Coreディレクトリのファイルをコピーしてください。
 
 ## 開発環境構築
 
-1. [Node.js] と [Visual Studio Code] をインストールします
-1. Visual Studio Code で **本 SDK のトップディレクトリ** を開き、推奨拡張機能をインストールします
-    * ポップアップ通知の他、拡張機能タブから `@recommended` を入力することで確認できます
+1. [Node.js](https://nodejs.org/) をインストールします。
+1. ターミナルで `Dot` ディレクトリに移動し、依存関係をインストールします。
 
-### サンプルデモの動作確認
+    ```sh
+    npm install
+    ```
 
-コマンドパレット（*View > Command Palette...*）で `>Tasks: Run Task` を入力することで、タスク一覧が表示されます。
+1. 開発サーバーを起動します。
 
-1. タスク一覧から　`npm: install - Samples/TypeScript/Demo` を選択して依存パッケージのダウンロードを行います
-1. タスク一覧から `npm: build - Samples/TypeScript/Demo` を選択してサンプルデモのビルドを行います
-1. タスク一覧から `npm: serve - Samples/TypeScript/Demo` を選択して動作確認用の簡易サーバを起動します
-1. ブラウザの URL 欄に `http://localhost:5000` と入力してアクセスします
-1. コマンドパレットから `>Tasks: Terminate Task` を入力して `npm: serve` を選択すると簡易サーバが終了します
+    ```sh
+    npm run start
+    ```
 
-その他のタスクに関してはサンプルプロジェクトの [README.md](Samples/TypeScript/README.ja.md) を参照ください。
+1. Vite が表示する URL（通常は `http://localhost:5173`）をブラウザで開きます。
 
-NOTE: デバッグ用の設定は、`.vscode/tasks.json` に記述しています。
+本番ビルドは `Dot` ディレクトリで `npm run build` を実行します。
 
 ### プロジェクトのデバッグ
 
-Visual Studio Code で **本 SDK のトップディレクトリ** を開き、 *F5* キーを押すと組み込みの JavaScript デバッガー（Chrome や Edge など）によるデバッグが開始されます。
-
-Visual Studio Code 上でブレイクポイントを貼ってブラウザと連動してデバッグを行うことができます。
-
-NOTE: デバッグ用の設定は、`.vscode/launch.json` に記述しています。
+Visual Studio Code でプロジェクトを開き、実行中のビューアーをブラウザの開発者ツールでデバッグしてください。スクリプトの各コマンドはブラウザのコンソールに記録されます。
 
 
 ## SDKマニュアル
@@ -83,7 +92,7 @@ NOTE: デバッグ用の設定は、`.vscode/launch.json` に記述していま�
 
 ## 変更履歴
 
-Samples : [CHANGELOG.md](CHANGELOG.md)
+DotViewer : [CHANGELOG.md](CHANGELOG.md)
 
 Framework : [CHANGELOG.md](Framework/CHANGELOG.md)
 
@@ -117,7 +126,7 @@ Core : [CHANGELOG.md](Core/CHANGELOG.md)
 | Windows | Microsoft Edge | 146.0.3856.78 |
 | Windows | Mozilla Firefox | 149.0 |
 
-Note: 動作確認時のサーバの起動は `./Samples/TypeScript/Demo/package.json` の `serve` スクリプトを使用して行っています。
+Note: 動作確認時は `Dot` ディレクトリで `npm run start` を実行してサーバーを起動します。
 
 
 ## プロジェクトへの貢献

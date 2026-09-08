@@ -153,7 +153,8 @@ function advanceScript(deltaTimeSeconds: number): void {
     } else if (command.name === 'asyncl2dmotion') {
       void startScriptMotion(command.args[0], true, command.motionDurationSeconds);
     } else if (isMessageCommand(command)) {
-      model.setLipSyncEnabled(!isThoughtMessage(command));
+      const thoughtMessage = isThoughtMessage(command);
+      model.setLipSyncEnabled(!thoughtMessage);
       const voiceTag = getVoiceTag(command);
       const readDurationMs = command.pauseSeconds !== undefined
         ? command.pauseSeconds * 1000
@@ -164,8 +165,19 @@ function advanceScript(deltaTimeSeconds: number): void {
             getMessageDialogue(command).replace(/<br\s*\/?\s*>/gi, ' ').length / messageCharactersPerSecond * 1000
           );
       const reading = new Promise<void>((resolve) => window.setTimeout(resolve, readDurationMs));
-      const audio = voiceTag ? audioPlayer.play(voiceTag) : Promise.resolve();
-      pendingAudio = Promise.all([reading, audio]).then(() => undefined).finally(() => { pendingAudio = null; });
+      const audio = voiceTag
+        ? audioPlayer.play(voiceTag)
+        : Promise.resolve();
+      if (voiceTag && !thoughtMessage) model.setLipSyncEnabled(true);
+      if (voiceTag) {
+        void audio.finally(() => {
+          model?.releaseAsyncMotion('MouthEmotion00');
+          model?.setLipSyncEnabled(false);
+        });
+      }
+      pendingAudio = Promise.all([reading, audio])
+        .then(() => undefined)
+        .finally(() => { pendingAudio = null; });
       return;
     }
   }

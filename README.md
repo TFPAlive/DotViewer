@@ -10,6 +10,18 @@ The viewer can switch between models, play scripted motions and voice audio, dra
 
 Model files are loaded from `Dot/public/data`. Add a model directory containing a `model3.json` file there, then restart the development server so the model index can be regenerated.
 
+### Script playback
+
+Scripts are loaded from `Dot/public/data/<group>/script`. The viewer supports scripted scene changes, motions, messages, voice audio, background video, and timed waits.
+
+* `l2dmotion` plays a motion immediately through the primary motion layer.
+* `asyncl2dmotion,...,STOP,<seconds>` plays a motion on an independent layer and stops updating it after the specified duration. Its final parameter values remain layered until a Reset motion is reached.
+* `message` pauses according to the visible dialogue length. `l2dmessage` can also play voice audio and uses its existing audio/read timing.
+* Dialogue wrapped in `（...）` or `(...)` is treated as a thought, so it does not drive lip sync.
+* Reset motions clear the temporary motion layers and return control to the active scene motion.
+
+The browser developer console logs each script command with its execution index, command name, animation name, and timing information.
+
 
 ## License
 
@@ -77,14 +89,6 @@ Open the project in Visual Studio Code and use the browser developer tools to de
 [Cubism SDK Manual](https://docs.live2d.com/cubism-sdk-manual/top/)
 
 
-## Changelog
-
-DotViewer : [CHANGELOG.md](CHANGELOG.md)
-
-Framework : [CHANGELOG.md](Framework/CHANGELOG.md)
-
-Core : [CHANGELOG.md](Core/CHANGELOG.md)
-
 
 ## Development environment
 
@@ -113,7 +117,7 @@ Core : [CHANGELOG.md](Core/CHANGELOG.md)
 | Windows | Microsoft Edge | 146.0.3856.78 |
 | Windows | Mozilla Firefox | 149.0 |
 
-Note: You can start the server for operation check by running the `serve` script of `./Samples/TypeScript/Demo/package.json`.
+Note: Start the viewer from the `Dot` directory with `npm run start`.
 
 
 ## Contributing

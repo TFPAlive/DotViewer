@@ -98,7 +98,7 @@ export async function playScriptMotion(
     model.playSceneMotion(motion, null);
     model.playSceneLoop();
   } else if (asynchronous && duration !== undefined) {
-    model.playAsyncMotion(motion, duration);
+    model.playAsyncMotion(name, motion, duration);
   } else {
     model.playMotion(motion);
   }
