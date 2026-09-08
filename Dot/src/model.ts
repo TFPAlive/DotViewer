@@ -29,7 +29,7 @@ export class ScriptedUserModel extends CubismUserModel {
   }> = [];
   private sceneMotionManager: CubismMotionManager;
   private sceneLoopMotion: CubismMotion | null = null;
-  private lipSyncIds: CubismIdHandle[] = [];
+  private lipSyncParameters: Array<{ id: CubismIdHandle; baseline: number; maximum: number }> = [];
 
   public constructor() {
     super();
@@ -110,15 +110,27 @@ export class ScriptedUserModel extends CubismUserModel {
     }
   }
 
-  public setLipSyncParameterIds(ids: CubismIdHandle[]): void {
-    this.lipSyncIds = ids;
+  public setLipSyncParameters(ids: CubismIdHandle[], baselineMotion?: CubismMotion): void {
+    const baselineValues = baselineMotion?.getParameterValuesAt(0) ?? new Map<CubismIdHandle, number>();
+    const loadedModel = this.getModel();
+    if (!loadedModel) return;
+    this.lipSyncParameters = ids.map((id) => {
+      const currentValue = loadedModel.getParameterValueById(id);
+      return {
+        id,
+        baseline: baselineValues.get(id) ?? currentValue,
+        maximum: loadedModel.getParameterMaximumValue(loadedModel.getParameterIndex(id))
+      };
+    });
   }
 
   public updateLipSync(level: number): void {
     const loadedModel = this.getModel();
     if (!loadedModel) return;
-    for (const lipSyncId of this.lipSyncIds) {
-      loadedModel.addParameterValueById(lipSyncId, level);
+    const normalizedLevel = Math.max(0, Math.min(1, level));
+    for (const parameter of this.lipSyncParameters) {
+      const value = parameter.baseline + (parameter.maximum - parameter.baseline) * normalizedLevel;
+      loadedModel.setParameterValueById(parameter.id, value);
     }
   }
 
@@ -196,7 +208,6 @@ export async function loadModel(
   for (let index = 0; index < setting.getLipSyncParameterCount(); index += 1) {
     lipSyncIds.push(setting.getLipSyncParameterId(index));
   }
-  model.setLipSyncParameterIds(lipSyncIds);
   model.createRenderer(canvas.width, canvas.height);
   const renderer = model.getRenderer();
   renderer.startUp(gl);
@@ -219,6 +230,11 @@ export async function loadModel(
   }
 
   const motions = await preloadMotions(setting, basePath);
+  const baselineBuffer = motions.get('MouthEmotion00');
+  const baselineMotion = baselineBuffer
+    ? model.loadMotion(baselineBuffer, baselineBuffer.byteLength, 'MouthEmotion00')
+    : undefined;
+  model.setLipSyncParameters(lipSyncIds, baselineMotion);
   return { model, setting, motions };
 }
 

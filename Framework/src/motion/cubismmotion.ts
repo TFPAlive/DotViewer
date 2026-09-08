@@ -321,6 +321,17 @@ export class CubismMotion extends ACubismMotion {
       .map((curve) => curve.id);
   }
 
+  public getParameterValuesAt(time: number): Map<CubismIdHandle, number> {
+    const values = new Map<CubismIdHandle, number>();
+    if (!this._motionData) return values;
+    for (const curve of this._motionData.curves) {
+      if (curve.type === CubismMotionCurveTarget.CubismMotionCurveTarget_Parameter) {
+        values.set(curve.id, evaluateCurve(this._motionData, this._motionData.curves.indexOf(curve), time, false, this._motionData.duration));
+      }
+    }
+    return values;
+  }
+
   /**
    * インスタンスを作成する
    *

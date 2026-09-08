@@ -19,7 +19,7 @@ export function getMessageDialogue(command: ScriptCommand): string {
 
 export function getMessagePauseSeconds(command: ScriptCommand): number {
   const visibleDialogue = getMessageDialogue(command).replace(/<br\s*\/?>/gi, '');
-  return visibleDialogue.length / 5;
+  return visibleDialogue.length / 16;
 }
 
 export function getVoiceTag(command: ScriptCommand): string | null {
