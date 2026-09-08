@@ -20,7 +20,13 @@ export type LoadedModel = {
 };
 
 export class ScriptedUserModel extends CubismUserModel {
-  private asyncMotions: Array<{ manager: CubismMotionManager; remaining: number }> = [];
+  private asyncMotions: Array<{
+    manager: CubismMotionManager;
+    motion: CubismMotion;
+    remaining: number;
+    stopped: boolean;
+    frozenParameters: Map<number, number>;
+  }> = [];
   private sceneMotionManager: CubismMotionManager;
   private sceneLoopMotion: CubismMotion | null = null;
   private lipSyncIds: CubismIdHandle[] = [];
@@ -39,7 +45,13 @@ export class ScriptedUserModel extends CubismUserModel {
     motion.setEffectIds([], []);
     const manager = this.createMotionManager();
     manager.startMotionPriority(motion, true, 1);
-    this.asyncMotions.push({ manager, remaining: duration });
+    this.asyncMotions.push({
+      manager,
+      motion,
+      remaining: duration,
+      stopped: false,
+      frozenParameters: new Map()
+    });
   }
 
   public playSceneMotion(motion: CubismMotion, loopMotion: CubismMotion | null): void {
@@ -63,15 +75,38 @@ export class ScriptedUserModel extends CubismUserModel {
     if (!this.getModel()) return;
     this._motionManager.updateMotion(this.getModel(), deltaTimeSeconds);
     this.sceneMotionManager.updateMotion(this.getModel(), deltaTimeSeconds);
-    for (let index = this.asyncMotions.length - 1; index >= 0; index -= 1) {
-      const activeMotion = this.asyncMotions[index];
+    for (const activeMotion of this.asyncMotions) {
+      if (activeMotion.stopped) {
+        this.applyFrozenParameters(activeMotion.frozenParameters);
+        continue;
+      }
       activeMotion.manager.updateMotion(this.getModel(), deltaTimeSeconds);
       activeMotion.remaining -= deltaTimeSeconds;
-      if (activeMotion.remaining <= 0) {
-        activeMotion.manager.stopAllMotions();
-        activeMotion.manager.release();
-        this.asyncMotions.splice(index, 1);
+      if (activeMotion.remaining <= 0 || activeMotion.manager.isFinished()) {
+        this.freezeMotionParameters(activeMotion);
       }
+    }
+  }
+
+  private freezeMotionParameters(activeMotion: {
+    motion: CubismMotion;
+    stopped: boolean;
+    frozenParameters: Map<number, number>;
+  }): void {
+    const loadedModel = this.getModel();
+    if (!loadedModel) return;
+    for (const parameterId of activeMotion.motion.getParameterIds()) {
+      const parameterIndex = loadedModel.getParameterIndex(parameterId);
+      activeMotion.frozenParameters.set(parameterIndex, loadedModel.getParameterValueByIndex(parameterIndex));
+    }
+    activeMotion.stopped = true;
+  }
+
+  private applyFrozenParameters(parameters: Map<number, number>): void {
+    const loadedModel = this.getModel();
+    if (!loadedModel) return;
+    for (const [parameterIndex, value] of parameters) {
+      loadedModel.setParameterValueByIndex(parameterIndex, value);
     }
   }
 
@@ -93,6 +128,11 @@ export class ScriptedUserModel extends CubismUserModel {
       activeMotion.manager.release();
     }
     this.asyncMotions = [];
+  }
+
+  public resetToScene(): void {
+    this._motionManager.stopAllMotions();
+    this.clearAsyncMotions();
   }
 
   public clearSceneMotion(): void {

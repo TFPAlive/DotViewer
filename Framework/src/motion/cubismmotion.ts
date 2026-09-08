@@ -314,6 +314,13 @@ export enum MotionBehavior {
  * モーションのクラス。
  */
 export class CubismMotion extends ACubismMotion {
+  public getParameterIds(): CubismIdHandle[] {
+    if (!this._motionData) return [];
+    return this._motionData.curves
+      .filter((curve) => curve.type === CubismMotionCurveTarget.CubismMotionCurveTarget_Parameter)
+      .map((curve) => curve.id);
+  }
+
   /**
    * インスタンスを作成する
    *

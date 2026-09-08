@@ -2,7 +2,7 @@ import './style.css';
 import { CubismFramework } from '../../Framework/src/live2dcubismframework';
 import { AudioPlayer } from './audio';
 import { discoverModels, loadModel, ModelOption, ScriptedUserModel } from './model';
-import { getMessageDialogue, getVoiceTag, isMessageCommand, loadScript, playScriptMotion, ScriptCommand } from './script';
+import { getMessageDialogue, getMessagePauseSeconds, getVoiceTag, isMessageCommand, loadScript, playScriptMotion, ScriptCommand } from './script';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#model-canvas')!;
 const viewerPanel = document.querySelector<HTMLElement>('.viewer-panel')!;
@@ -135,7 +135,15 @@ function advanceScript(deltaTimeSeconds: number): void {
   }
 
   while (scriptIndex < scriptCommands.length) {
+    const commandIndex = scriptIndex;
     const command = scriptCommands[scriptIndex++];
+    console.log('[script:command]', {
+      index: commandIndex,
+      name: command.name,
+      anim_name: command.args[0],
+      pauseSeconds: command.pauseSeconds,
+      motionDurationSeconds: command.motionDurationSeconds
+    });
     if (command.name === 'wait') {
       scriptWait = Number(command.args[0]) || 0;
       return;
@@ -143,16 +151,17 @@ function advanceScript(deltaTimeSeconds: number): void {
     if (command.name === 'l2dmotion') {
       void startScriptMotion(command.args[0], false);
     } else if (command.name === 'asyncl2dmotion') {
-      void startScriptMotion(command.args[0], true, command.motionDurationSeconds ?? 0);
+      void startScriptMotion(command.args[0], true, command.motionDurationSeconds);
     } else if (isMessageCommand(command)) {
       const voiceTag = getVoiceTag(command);
-      const dialogue = getMessageDialogue(command);
-      const calculatedReadDurationMs = Math.ceil(
-        dialogue.replace(/<br\s*\/?>/gi, ' ').length / messageCharactersPerSecond * 1000
-      );
-      const readDurationMs = command.pauseSeconds === undefined
-        ? Math.max(messageReadDelayMs, calculatedReadDurationMs)
-        : command.pauseSeconds * 1000;
+      const readDurationMs = command.pauseSeconds !== undefined
+        ? command.pauseSeconds * 1000
+        : command.name === 'message'
+          ? getMessagePauseSeconds(command) * 1000
+          : Math.max(
+            messageReadDelayMs,
+            getMessageDialogue(command).replace(/<br\s*\/?\s*>/gi, ' ').length / messageCharactersPerSecond * 1000
+          );
       const reading = new Promise<void>((resolve) => window.setTimeout(resolve, readDurationMs));
       const audio = voiceTag ? audioPlayer.play(voiceTag) : Promise.resolve();
       pendingAudio = Promise.all([reading, audio]).then(() => undefined).finally(() => { pendingAudio = null; });
@@ -165,7 +174,7 @@ function advanceScript(deltaTimeSeconds: number): void {
   scriptStatus.textContent = 'Script complete';
 }
 
-async function startScriptMotion(name: string, asynchronous: boolean, duration = 0): Promise<void> {
+async function startScriptMotion(name: string, asynchronous: boolean, duration?: number): Promise<void> {
   if (!model) return;
   await playScriptMotion(name, asynchronous, model, loadedMotionFiles, duration);
 }

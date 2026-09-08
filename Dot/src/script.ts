@@ -17,12 +17,16 @@ export function getMessageDialogue(command: ScriptCommand): string {
   return command.args.slice(1, dialogueEnd).join(',').trim();
 }
 
+export function getMessagePauseSeconds(command: ScriptCommand): number {
+  const visibleDialogue = getMessageDialogue(command).replace(/<br\s*\/?>/gi, '');
+  return visibleDialogue.length / 5;
+}
+
 export function getVoiceTag(command: ScriptCommand): string | null {
   return command.args.find((argument) => argument.trim().startsWith('vc_'))?.trim() ?? null;
 }
 
 export function parseScript(source: string): ScriptCommand[] {
-  let lastMotionPauseSeconds: number | undefined;
   return source.split(/\r?\n/).flatMap((line) => {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith(':') || trimmed.startsWith('#')) return [];
@@ -32,12 +36,11 @@ export function parseScript(source: string): ScriptCommand[] {
       const stopIndex = command.args.findIndex((argument) => argument.trim().toUpperCase() === 'STOP');
       const motionDurationSeconds = Number(command.args[stopIndex + 1]);
       if (stopIndex >= 0 && Number.isFinite(motionDurationSeconds) && motionDurationSeconds >= 0) {
-        lastMotionPauseSeconds = motionDurationSeconds;
         return [{ ...command, motionDurationSeconds }];
       }
     }
-    if (isMessageCommand(command) && lastMotionPauseSeconds !== undefined) {
-      return [{ ...command, pauseSeconds: lastMotionPauseSeconds }];
+    if (command.name === 'message') {
+      return [{ ...command, pauseSeconds: getMessagePauseSeconds(command) }];
     }
     return [command];
   });
@@ -50,13 +53,21 @@ export function resolveMotionName(name: string, loadedMotionFiles: Map<string, A
   return loadedMotionFiles.has(`${sceneName}_loop`) ? `${sceneName}_loop` : sceneName;
 }
 
+export function isSceneResetMotion(name: string): boolean {
+  return name.endsWith('Reset');
+}
+
 export async function playScriptMotion(
   name: string,
   asynchronous: boolean,
   model: ScriptedUserModel,
   loadedMotionFiles: Map<string, ArrayBuffer>,
-  duration = 0
+  duration?: number
 ): Promise<void> {
+  if (isSceneResetMotion(name)) {
+    model.resetToScene();
+    return;
+  }
   const sceneMatch = /^Scene(\d+)$/.exec(name);
   const resolvedName = sceneMatch ? `scene${sceneMatch[1]}` : resolveMotionName(name, loadedMotionFiles);
   const loopName = sceneMatch ? `${resolvedName}_loop` : null;
@@ -79,7 +90,7 @@ export async function playScriptMotion(
     motion.setLoop(true);
     model.playSceneMotion(motion, null);
     model.playSceneLoop();
-  } else if (asynchronous && duration > 0) {
+  } else if (asynchronous && duration !== undefined) {
     model.playAsyncMotion(motion, duration);
   } else {
     model.playMotion(motion);
