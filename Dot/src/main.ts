@@ -2,7 +2,7 @@ import './style.css';
 import { CubismFramework } from '../../Framework/src/live2dcubismframework';
 import { AudioPlayer } from './audio';
 import { discoverModels, loadModel, ModelOption, ScriptedUserModel } from './model';
-import { getMessageDialogue, getMessagePauseSeconds, getVoiceTag, isMessageCommand, loadScript, playScriptMotion, ScriptCommand } from './script';
+import { getMessageDialogue, getMessagePauseSeconds, getVoiceTag, isMessageCommand, isThoughtMessage, loadScript, playScriptMotion, ScriptCommand } from './script';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#model-canvas')!;
 const viewerPanel = document.querySelector<HTMLElement>('.viewer-panel')!;
@@ -153,6 +153,7 @@ function advanceScript(deltaTimeSeconds: number): void {
     } else if (command.name === 'asyncl2dmotion') {
       void startScriptMotion(command.args[0], true, command.motionDurationSeconds);
     } else if (isMessageCommand(command)) {
+      model.setLipSyncEnabled(!isThoughtMessage(command));
       const voiceTag = getVoiceTag(command);
       const readDurationMs = command.pauseSeconds !== undefined
         ? command.pauseSeconds * 1000

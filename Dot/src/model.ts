@@ -30,6 +30,7 @@ export class ScriptedUserModel extends CubismUserModel {
   private sceneMotionManager: CubismMotionManager;
   private sceneLoopMotion: CubismMotion | null = null;
   private lipSyncParameters: Array<{ id: CubismIdHandle; baseline: number; maximum: number }> = [];
+  private lipSyncEnabled = true;
 
   public constructor() {
     super();
@@ -124,9 +125,14 @@ export class ScriptedUserModel extends CubismUserModel {
     });
   }
 
+  public setLipSyncEnabled(enabled: boolean): void {
+    this.lipSyncEnabled = enabled;
+    if (!enabled) this.updateLipSync(0);
+  }
+
   public updateLipSync(level: number): void {
     const loadedModel = this.getModel();
-    if (!loadedModel) return;
+    if (!loadedModel || !this.lipSyncEnabled) return;
     const normalizedLevel = Math.max(0, Math.min(1, level));
     for (const parameter of this.lipSyncParameters) {
       const value = parameter.baseline + (parameter.maximum - parameter.baseline) * normalizedLevel;

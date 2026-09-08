@@ -14,7 +14,15 @@ export function isMessageCommand(command: ScriptCommand): boolean {
 export function getMessageDialogue(command: ScriptCommand): string {
   const audioIndex = command.args.findIndex((argument) => argument.trim().startsWith('vc_'));
   const dialogueEnd = audioIndex >= 0 ? audioIndex : command.args.length;
-  return command.args.slice(1, dialogueEnd).join(',').trim();
+  const dialogueFields = command.args.slice(1, dialogueEnd);
+  while (dialogueFields.at(-1)?.trim() === '') dialogueFields.pop();
+  return dialogueFields.join(',').trim();
+}
+
+export function isThoughtMessage(command: ScriptCommand): boolean {
+  const dialogue = getMessageDialogue(command);
+  console.log('[script:thought]', { dialogue, test1: (/^（[\s\S]*）$/).test(dialogue), test2: (/^\([\s\S]*\)$/).test(dialogue) });
+  return (/^（[\s\S]*）$/).test(dialogue) || (/^\([\s\S]*\)$/).test(dialogue);
 }
 
 export function getMessagePauseSeconds(command: ScriptCommand): number {
