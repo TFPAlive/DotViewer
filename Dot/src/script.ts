@@ -21,7 +21,6 @@ export function getMessageDialogue(command: ScriptCommand): string {
 
 export function isThoughtMessage(command: ScriptCommand): boolean {
   const dialogue = getMessageDialogue(command);
-  console.log('[script:thought]', { dialogue, test1: (/^（[\s\S]*）$/).test(dialogue), test2: (/^\([\s\S]*\)$/).test(dialogue) });
   return (/^（[\s\S]*）$/).test(dialogue) || (/^\([\s\S]*\)$/).test(dialogue);
 }
 
