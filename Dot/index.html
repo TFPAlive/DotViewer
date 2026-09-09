@@ -14,12 +14,17 @@
       </header>
       <section class="viewer-panel" aria-label="Live2D model viewer">
         <button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-label="Enter fullscreen">Fullscreen</button>
+        <button id="dialogue-toggle" class="dialogue-toggle" type="button" aria-pressed="true">Dialogue: On</button>
         <div class="playback-controls" aria-label="Playback controls">
           <button id="play-toggle" type="button">Play</button>
           <button id="restart-toggle" type="button">Restart</button>
           <span id="script-status" role="status">Script ready</span>
         </div>
         <canvas id="model-canvas"></canvas>
+        <div id="dialogue-viewer" class="dialogue-viewer" role="status" aria-live="polite">
+          <div id="dialogue-speaker" class="dialogue-speaker"></div>
+          <div id="dialogue-text" class="dialogue-text"></div>
+        </div>
         <div id="loading" class="status">Loading model...</div>
         <div id="error" class="status error" hidden></div>
       </section>

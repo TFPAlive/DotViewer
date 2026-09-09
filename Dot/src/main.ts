@@ -2,11 +2,15 @@ import './style.css';
 import { CubismFramework } from '../../Framework/src/live2dcubismframework';
 import { AudioPlayer } from './audio';
 import { discoverModels, loadModel, ModelOption, ScriptedUserModel } from './model';
-import { getMessageDialogue, getMessagePauseSeconds, getVoiceTag, isMessageCommand, isThoughtMessage, loadScript, playScriptMotion, ScriptCommand } from './script';
+import { getMessageDialogue, getMessagePauseSeconds, getMessageSpeaker, getVoiceTag, isMessageCommand, isThoughtMessage, loadScript, playScriptMotion, ScriptCommand } from './script';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#model-canvas')!;
 const viewerPanel = document.querySelector<HTMLElement>('.viewer-panel')!;
 const fullscreenToggle = document.querySelector<HTMLButtonElement>('#fullscreen-toggle')!;
+const dialogueToggle = document.querySelector<HTMLButtonElement>('#dialogue-toggle')!;
+const dialogueViewer = document.querySelector<HTMLDivElement>('#dialogue-viewer')!;
+const dialogueSpeaker = document.querySelector<HTMLDivElement>('#dialogue-speaker')!;
+const dialogueText = document.querySelector<HTMLDivElement>('#dialogue-text')!;
 const select = document.querySelector<HTMLSelectElement>('#model-select')!;
 const loading = document.querySelector<HTMLDivElement>('#loading')!;
 const error = document.querySelector<HTMLDivElement>('#error')!;
@@ -31,6 +35,7 @@ let lastFrameTime = performance.now();
 let dragging = false;
 let lastPointerX = 0;
 let lastPointerY = 0;
+let dialogueVisible = true;
 
 if (!gl) throw new Error('WebGL is unavailable in this browser.');
 
@@ -57,6 +62,12 @@ restartToggle.addEventListener('click', () => {
 fullscreenToggle.addEventListener('click', () => {
   if (document.fullscreenElement) void document.exitFullscreen();
   else void viewerPanel.requestFullscreen();
+});
+dialogueToggle.addEventListener('click', () => {
+  dialogueVisible = !dialogueVisible;
+  dialogueToggle.setAttribute('aria-pressed', String(dialogueVisible));
+  dialogueToggle.textContent = `Dialogue: ${dialogueVisible ? 'On' : 'Off'}`;
+  dialogueViewer.hidden = !dialogueVisible || dialogueText.textContent === '';
 });
 document.addEventListener('fullscreenchange', () => {
   const isFullscreen = document.fullscreenElement === viewerPanel;
@@ -153,6 +164,9 @@ function advanceScript(deltaTimeSeconds: number): void {
     } else if (command.name === 'asyncl2dmotion') {
       void startScriptMotion(command.args[0], true, command.motionDurationSeconds);
     } else if (isMessageCommand(command)) {
+      dialogueSpeaker.textContent = getMessageSpeaker(command);
+      dialogueText.textContent = getMessageDialogue(command).replace(/<br\s*\/?\s*>/gi, '\n');
+      dialogueViewer.hidden = !dialogueVisible;
       const thoughtMessage = isThoughtMessage(command);
       model.setLipSyncEnabled(!thoughtMessage);
       const voiceTag = getVoiceTag(command);
@@ -176,7 +190,10 @@ function advanceScript(deltaTimeSeconds: number): void {
         });
       }
       pendingAudio = Promise.all([reading, audio])
-        .then(() => undefined)
+        .then(() => {
+          dialogueText.textContent = '';
+          dialogueViewer.hidden = true;
+        })
         .finally(() => { pendingAudio = null; });
       return;
     }

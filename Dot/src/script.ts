@@ -109,3 +109,7 @@ export async function loadScript(path: string): Promise<ScriptCommand[]> {
   if (!response.ok) throw new Error(`Could not load ${path}`);
   return parseScript(await response.text());
 }
+
+export function getMessageSpeaker(command: ScriptCommand): string {
+  return command.args[0]?.trim() || '司令官';
+}
