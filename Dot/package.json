@@ -16,9 +16,9 @@
   },
   "devDependencies": {
     "@types/node": "^24.3.1",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   },
-    "allowScripts": {
+  "allowScripts": {
     "esbuild@0.28.2": true
   }
 }

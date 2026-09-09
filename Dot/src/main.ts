@@ -16,6 +16,7 @@ const loading = document.querySelector<HTMLDivElement>('#loading')!;
 const error = document.querySelector<HTMLDivElement>('#error')!;
 const playToggle = document.querySelector<HTMLButtonElement>('#play-toggle')!;
 const restartToggle = document.querySelector<HTMLButtonElement>('#restart-toggle')!;
+const resetPositionToggle = document.querySelector<HTMLButtonElement>('#reset-position')!;
 const scriptStatus = document.querySelector<HTMLSpanElement>('#script-status')!;
 const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: true });
 const modelOpacity = 0.7;
@@ -24,6 +25,7 @@ const messageCharactersPerSecond = 16;
 
 let models: ModelOption[] = [];
 let model: ScriptedUserModel | null = null;
+let initialModelMatrix: Float32Array | null = null;
 let audioPlayer: AudioPlayer | null = null;
 let scriptCommands: ScriptCommand[] = [];
 let loadedMotionFiles = new Map<string, ArrayBuffer>();
@@ -59,6 +61,11 @@ restartToggle.addEventListener('click', () => {
   playToggle.textContent = 'Pause';
   scriptStatus.textContent = 'Restarting script';
 });
+resetPositionToggle.addEventListener('click', () => {
+  if (!model || !initialModelMatrix) return;
+  model.getModelMatrix().setMatrix(initialModelMatrix);
+  model.setDragging(0, 0);
+});
 fullscreenToggle.addEventListener('click', () => {
   if (document.fullscreenElement) void document.exitFullscreen();
   else void viewerPanel.requestFullscreen();
@@ -89,12 +96,20 @@ canvas.addEventListener('pointercancel', () => { dragging = false; });
 canvas.addEventListener('pointermove', (event) => {
   if (!dragging) return;
   const bounds = canvas.getBoundingClientRect();
-  const deltaX = ((event.clientX - lastPointerX) / bounds.width) * 2;
-  const deltaY = -((event.clientY - lastPointerY) / bounds.height) * 2;
-  model?.getModelMatrix().translateRelative(deltaX, deltaY);
+  const modelMatrix = model?.getModelMatrix();
+  if (!modelMatrix) return;
+  const deltaX = ((event.clientX - lastPointerX) / bounds.height) * 2 / modelMatrix.getScaleX();
+  const deltaY = -((event.clientY - lastPointerY) / bounds.height) * 2 / modelMatrix.getScaleY();
+  modelMatrix.translateRelative(deltaX, deltaY);
   model?.setDragging(((event.clientX - bounds.left) / bounds.width) * 2 - 1, -(((event.clientY - bounds.top) / bounds.height) * 2 - 1));
   lastPointerX = event.clientX;
   lastPointerY = event.clientY;
+});
+canvas.addEventListener('wheel', (event) => {
+  const bounds = canvas.getBoundingClientRect();
+  const scaleFactor = event.deltaY < 0 ? 1.1 : 0.9;
+  model?.getModelMatrix().scaleRelative(scaleFactor, scaleFactor);
+  model?.setDragging(((event.clientX - bounds.left) / bounds.width) * 2 - 1, -(((event.clientY - bounds.top) / bounds.height) * 2 - 1));
 });
 window.addEventListener('resize', resizeCanvas);
 
@@ -114,6 +129,7 @@ async function loadSelectedModel(): Promise<void> {
   model?.release();
   audioPlayer?.stop();
   model = null;
+  initialModelMatrix = null;
   audioPlayer = new AudioPlayer(option.audioPath, option.audioPrefix);
   pendingAudio = null;
   scriptCommands = [];
@@ -125,6 +141,7 @@ async function loadSelectedModel(): Promise<void> {
   try {
     const loaded = await loadModel(option, canvas, gl!, modelOpacity);
     model = loaded.model;
+    initialModelMatrix = new Float32Array(model.getModelMatrix().getArray());
     loadedMotionFiles = loaded.motions;
     scriptCommands = await loadScript(option.script);
     void startScriptMotion('scene01_loop', false);
