@@ -60,7 +60,7 @@ export function resolveMotionName(name: string, loadedMotionFiles: Map<string, A
   return loadedMotionFiles.has(`${sceneName}_loop`) ? `${sceneName}_loop` : sceneName;
 }
 
-export function isSceneResetMotion(name: string): boolean {
+export function isResetMotion(name: string): boolean {
   return name.endsWith('Reset');
 }
 
@@ -70,8 +70,8 @@ export async function playScriptMotion(
   model: ScriptedUserModel,
   loadedMotionFiles: Map<string, ArrayBuffer>
 ): Promise<void> {
-  if (isSceneResetMotion(name)) {
-    model.resetToScene();
+  if (isResetMotion(name)) {
+    model.resetAsyncMotion(name);
     return;
   }
   const sceneMatch = /^Scene(\d+)$/.exec(name);

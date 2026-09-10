@@ -187,6 +187,7 @@ function advanceScript(deltaTimeSeconds: number): void {
       dialogueSpeaker.textContent = getMessageSpeaker(command);
       dialogueText.textContent = getMessageDialogue(command).replace(/<br\s*\/?\s*>/gi, '\n');
       dialogueViewer.hidden = !dialogueVisible;
+      console.log('[motion:list]', model.getMotionList());
       const thoughtMessage = isThoughtMessage(command);
       model.setLipSyncEnabled(!thoughtMessage);
       const voiceTag = getVoiceTag(command);

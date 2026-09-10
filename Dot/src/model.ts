@@ -24,6 +24,7 @@ export class ScriptedUserModel extends CubismUserModel {
     manager: CubismMotionManager;
     motion: CubismMotion;
     name: string;
+    releasing: boolean;
     stopped: boolean;
     frozenParameters: Map<number, number>;
   }> = [];
@@ -38,11 +39,14 @@ export class ScriptedUserModel extends CubismUserModel {
   }
 
   public playMotion(motion: CubismMotion): void {
+    this.configureMotionTransition(motion);
     motion.setEffectIds([], []);
     this._motionManager.startMotionPriority(motion, true, 1);
   }
 
   public playAsyncMotion(name: string, motion: CubismMotion): void {
+    this.fadeOutAsyncMotionFamily(name);
+    this.configureMotionTransition(motion);
     motion.setEffectIds([], []);
     const manager = this.createMotionManager();
     manager.startMotionPriority(motion, true, 1);
@@ -50,13 +54,15 @@ export class ScriptedUserModel extends CubismUserModel {
       manager,
       motion,
       name,
+      releasing: false,
       stopped: false,
       frozenParameters: new Map()
     });
   }
 
   public playSceneMotion(motion: CubismMotion, loopMotion: CubismMotion | null): void {
-    this.clearMotionLayers();
+    this._motionManager.stopAllMotions();
+    this.clearSceneMotion();
     motion.setEffectIds([], []);
     this.sceneMotionManager.startMotionPriority(motion, true, 1);
     if (loopMotion) {
@@ -76,7 +82,15 @@ export class ScriptedUserModel extends CubismUserModel {
     if (!this.getModel()) return;
     this._motionManager.updateMotion(this.getModel(), deltaTimeSeconds);
     this.sceneMotionManager.updateMotion(this.getModel(), deltaTimeSeconds);
-    for (const activeMotion of this.asyncMotions) {
+    for (let index = this.asyncMotions.length - 1; index >= 0; index -= 1) {
+      const activeMotion = this.asyncMotions[index];
+      if (activeMotion.releasing) {
+        if (activeMotion.manager.isFinished()) {
+          activeMotion.manager.release();
+          this.asyncMotions.splice(index, 1);
+        }
+        continue;
+      }
       if (activeMotion.stopped) {
         this.applyFrozenParameters(activeMotion.frozenParameters);
         continue;
@@ -139,12 +153,67 @@ export class ScriptedUserModel extends CubismUserModel {
     }
   }
 
+  public getMotionList(): string[] {
+    return this.asyncMotions
+      .filter((activeMotion) => !activeMotion.releasing)
+      .map((activeMotion) => activeMotion.name);
+  }
+
+  public resetAsyncMotion(name: string): void {
+    const motionFamily = this.getMotionFamily(name);
+    for (let index = this.asyncMotions.length - 1; index >= 0; index -= 1) {
+      const activeMotion = this.asyncMotions[index];
+      if (activeMotion.releasing || this.getMotionFamily(activeMotion.name) !== motionFamily) {
+        continue;
+      }
+      if (activeMotion.stopped) {
+        activeMotion.manager.release();
+        this.asyncMotions.splice(index, 1);
+        continue;
+      }
+      activeMotion.releasing = true;
+      const duration = activeMotion.motion.getDuration() > 0
+        ? activeMotion.motion.getDuration()
+        : activeMotion.motion.getLoopDuration();
+      const fadeOutSeconds = duration > 0 ? duration * 0.2 : 0;
+      for (const entry of activeMotion.manager.getCubismMotionQueueEntries()) {
+        entry.setFadeOut(fadeOutSeconds);
+      }
+    }
+  }
+
+  private fadeOutAsyncMotionFamily(name: string): void {
+    const motionFamily = this.getMotionFamily(name);
+    for (let index = this.asyncMotions.length - 1; index >= 0; index -= 1) {
+      const activeMotion = this.asyncMotions[index];
+      if (activeMotion.releasing || this.getMotionFamily(activeMotion.name) !== motionFamily) continue;
+      if (activeMotion.stopped) {
+        activeMotion.manager.release();
+        this.asyncMotions.splice(index, 1);
+        continue;
+      }
+      activeMotion.releasing = true;
+      const duration = activeMotion.motion.getDuration() > 0
+        ? activeMotion.motion.getDuration()
+        : activeMotion.motion.getLoopDuration();
+      const fadeOutSeconds = duration > 0 ? duration * 0.2 : 0;
+      for (const entry of activeMotion.manager.getCubismMotionQueueEntries()) {
+        entry.setFadeOut(fadeOutSeconds);
+      }
+    }
+  }
+
+  private getMotionFamily(name: string): string {
+    return name.replace(/Reset$/, '').replace(/\d+$/, '');
+  }
+
   public updateLipSync(level: number): void {
     const loadedModel = this.getModel();
     if (!loadedModel || !this.lipSyncEnabled) return;
     const normalizedLevel = Math.max(0, Math.min(1, level));
     for (const parameter of this.lipSyncParameters) {
-      const value = parameter.baseline + (parameter.maximum - parameter.baseline) * normalizedLevel;
+      const amplifiedLevel = Math.min(1, normalizedLevel * 1.5);
+      const value = parameter.baseline + (parameter.maximum - parameter.baseline) * amplifiedLevel;
       loadedModel.setParameterValueById(parameter.id, value);
     }
   }
@@ -173,16 +242,17 @@ export class ScriptedUserModel extends CubismUserModel {
     super.release();
   }
 
-  private clearMotionLayers(): void {
-    this._motionManager.stopAllMotions();
-    this.clearAsyncMotions();
-    this.clearSceneMotion();
-  }
-
   private createMotionManager(): CubismMotionManager {
     const manager = new CubismMotionManager();
     manager.setEventCallback(CubismUserModel.cubismDefaultMotionEventCallback, this);
     return manager;
+  }
+
+  private configureMotionTransition(motion: CubismMotion): void {
+    const duration = motion.getDuration() > 0 ? motion.getDuration() : motion.getLoopDuration();
+    if (duration <= 0) return;
+    const transitionSeconds = duration * 0.2;
+    motion.setFadeInTime(transitionSeconds);
   }
 }
 
