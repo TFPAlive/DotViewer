@@ -4,7 +4,7 @@ export type ScriptCommand = {
   name: string;
   args: string[];
   pauseSeconds?: number;
-  motionDurationSeconds?: number;
+  motionDelaySeconds?: number;
 };
 
 export function isMessageCommand(command: ScriptCommand): boolean {
@@ -41,9 +41,9 @@ export function parseScript(source: string): ScriptCommand[] {
     const command = { name: fields[0], args: fields.slice(1) };
     if (command.name === 'asyncl2dmotion') {
       const stopIndex = command.args.findIndex((argument) => argument.trim().toUpperCase() === 'STOP');
-      const motionDurationSeconds = Number(command.args[stopIndex + 1]);
-      if (stopIndex >= 0 && Number.isFinite(motionDurationSeconds) && motionDurationSeconds >= 0) {
-        return [{ ...command, motionDurationSeconds }];
+      const motionDelaySeconds = Number(command.args[stopIndex + 1]);
+      if (stopIndex >= 0 && Number.isFinite(motionDelaySeconds) && motionDelaySeconds >= 0) {
+        return [{ ...command, motionDelaySeconds }];
       }
     }
     if (command.name === 'message') {
@@ -68,8 +68,7 @@ export async function playScriptMotion(
   name: string,
   asynchronous: boolean,
   model: ScriptedUserModel,
-  loadedMotionFiles: Map<string, ArrayBuffer>,
-  duration?: number
+  loadedMotionFiles: Map<string, ArrayBuffer>
 ): Promise<void> {
   if (isSceneResetMotion(name)) {
     model.resetToScene();
@@ -97,8 +96,8 @@ export async function playScriptMotion(
     motion.setLoop(true);
     model.playSceneMotion(motion, null);
     model.playSceneLoop();
-  } else if (asynchronous && duration !== undefined) {
-    model.playAsyncMotion(name, motion, duration);
+  } else if (asynchronous) {
+    model.playAsyncMotion(name, motion);
   } else {
     model.playMotion(motion);
   }

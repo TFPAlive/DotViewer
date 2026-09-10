@@ -38,6 +38,7 @@ let dragging = false;
 let lastPointerX = 0;
 let lastPointerY = 0;
 let dialogueVisible = true;
+const delayedMotionTimers = new Set<number>();
 
 if (!gl) throw new Error('WebGL is unavailable in this browser.');
 
@@ -53,6 +54,7 @@ restartToggle.addEventListener('click', () => {
   scriptIndex = 0;
   scriptWait = 0;
   scriptPlaying = true;
+  clearDelayedMotionTimers();
   model?.clearAsyncMotions();
   model?.clearSceneMotion();
   void startScriptMotion('scene01_loop', false);
@@ -128,6 +130,7 @@ async function loadSelectedModel(): Promise<void> {
   error.hidden = true;
   model?.release();
   audioPlayer?.stop();
+  clearDelayedMotionTimers();
   model = null;
   initialModelMatrix = null;
   audioPlayer = new AudioPlayer(option.audioPath, option.audioPrefix);
@@ -170,16 +173,16 @@ function advanceScript(deltaTimeSeconds: number): void {
       name: command.name,
       anim_name: command.args[0],
       pauseSeconds: command.pauseSeconds,
-      motionDurationSeconds: command.motionDurationSeconds
+      motionDelaySeconds: command.motionDelaySeconds
     });
     if (command.name === 'wait') {
       scriptWait = Number(command.args[0]) || 0;
       return;
     }
     if (command.name === 'l2dmotion') {
-      void startScriptMotion(command.args[0], false);
+      scheduleScriptMotion(command.args[0]);
     } else if (command.name === 'asyncl2dmotion') {
-      void startScriptMotion(command.args[0], true, command.motionDurationSeconds);
+      scheduleScriptMotion(command.args[0], command.motionDelaySeconds ?? 0, true);
     } else if (isMessageCommand(command)) {
       dialogueSpeaker.textContent = getMessageSpeaker(command);
       dialogueText.textContent = getMessageDialogue(command).replace(/<br\s*\/?\s*>/gi, '\n');
@@ -221,9 +224,27 @@ function advanceScript(deltaTimeSeconds: number): void {
   scriptStatus.textContent = 'Script complete';
 }
 
-async function startScriptMotion(name: string, asynchronous: boolean, duration?: number): Promise<void> {
+function clearDelayedMotionTimers(): void {
+  for (const timer of delayedMotionTimers) window.clearTimeout(timer);
+  delayedMotionTimers.clear();
+}
+
+function scheduleScriptMotion(name: string, delaySeconds = 0, asynchronous = false): void {
+  const delayMs = Math.max(0, delaySeconds * 1000);
+  if (delayMs === 0) {
+    void startScriptMotion(name, asynchronous);
+    return;
+  }
+  const timer = window.setTimeout(() => {
+    delayedMotionTimers.delete(timer);
+    void startScriptMotion(name, asynchronous);
+  }, delayMs);
+  delayedMotionTimers.add(timer);
+}
+
+async function startScriptMotion(name: string, asynchronous: boolean): Promise<void> {
   if (!model) return;
-  await playScriptMotion(name, asynchronous, model, loadedMotionFiles, duration);
+  await playScriptMotion(name, asynchronous, model, loadedMotionFiles);
 }
 
 function showError(reason: unknown): void {

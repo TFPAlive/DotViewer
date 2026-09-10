@@ -24,7 +24,6 @@ export class ScriptedUserModel extends CubismUserModel {
     manager: CubismMotionManager;
     motion: CubismMotion;
     name: string;
-    remaining: number;
     stopped: boolean;
     frozenParameters: Map<number, number>;
   }> = [];
@@ -43,7 +42,7 @@ export class ScriptedUserModel extends CubismUserModel {
     this._motionManager.startMotionPriority(motion, true, 1);
   }
 
-  public playAsyncMotion(name: string, motion: CubismMotion, duration: number): void {
+  public playAsyncMotion(name: string, motion: CubismMotion): void {
     motion.setEffectIds([], []);
     const manager = this.createMotionManager();
     manager.startMotionPriority(motion, true, 1);
@@ -51,7 +50,6 @@ export class ScriptedUserModel extends CubismUserModel {
       manager,
       motion,
       name,
-      remaining: duration,
       stopped: false,
       frozenParameters: new Map()
     });
@@ -84,8 +82,7 @@ export class ScriptedUserModel extends CubismUserModel {
         continue;
       }
       activeMotion.manager.updateMotion(this.getModel(), deltaTimeSeconds);
-      activeMotion.remaining -= deltaTimeSeconds;
-      if (activeMotion.remaining <= 0 || activeMotion.manager.isFinished()) {
+      if (activeMotion.manager.isFinished()) {
         this.freezeMotionParameters(activeMotion);
       }
     }
